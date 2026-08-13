@@ -121,9 +121,9 @@ streamlit run src/app.py
 ---
 ## 🙋‍♂️ About the Developer
 
-Built with ❤️ by **[SHAKSHI SONI]**
+Built with ❤️ by **SHAKSHI SONI**
 
-I'm a developer passionate about building practical AI applications that solve real-world problems. This project explores agentic AI design — where an LLM doesn't just chat, but *acts*, by calling tools, remembering context, and making decisions autonomously.
+I'm a developer passionate about building practical AI applications that solve real-world problems. This project explores Retrieval-Augmented Generation (RAG) pipeline — specifically, a hybrid RAG system with citation-grounded, confidence-gated generation.
 ---
 
 📫 **Connect with me:**
@@ -133,6 +133,4 @@ I'm a developer passionate about building practical AI applications that solve r
 <div align="center">
 
 **⭐ If you found this project interesting, please give it a star! It helps a lot.**
-## 📄 License
 
-MIT
