@@ -4,7 +4,11 @@
 
 A Retrieval-Augmented Generation system built around hybrid search (semantic + keyword), reciprocal rank fusion, and citation-forced generation — designed so every claim in every answer traces back to a specific document and page.
 
-🔗 **Live demo:** [lexisearch-rag.streamlit.app](https://lexisearch-rag-ajqgd6s57rxbg2teuj2hvq.streamlit.app/)
+
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Streamlit-FF4B4B?style=for-the-badge)](https://lexisearch-rag-ajqgd6s57rxbg2teuj2hvq.streamlit.app/)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![LLM Powered](https://img.shields.io/badge/LLM-Powered-8A2BE2?style=for-the-badge&logo=openai&logoColor=white)]()
 
 ---
 
