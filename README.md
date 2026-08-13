@@ -79,8 +79,8 @@ lexisearch-rag/
 ## 🚀 Running Locally
 
 ```bash
-git clone https://github.com/<your-username>/lexisearch-rag.git
-cd lexisearch-rag
+git clone https://github.com/shakshi-soni/LEXISEARCH-RAG.git
+cd LEXISEARCH-RAG
 
 pip install -r requirements.txt
 
