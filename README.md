@@ -1,136 +1,87 @@
-# 🔍 LexiSearch RAG
+# LexiSearch RAG
 
-**Upload documents. Ask questions. Get answers with exact page citations — or an honest "not found" instead of a guess.**
+[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-blue?style=for-the-badge)](https://lexisearch-rag-ajqgd6s57rxbg2teuj2hvq.streamlit.app/)
 
-A Retrieval-Augmented Generation system built around hybrid search (semantic + keyword), reciprocal rank fusion, and citation-forced generation — designed so every claim in every answer traces back to a specific document and page.
+Upload a PDF, ask questions, get answers with exact page citations — or an honest "not found" instead of a guess.
 
+A RAG system built around hybrid search (semantic + keyword), reciprocal rank fusion, and citation-forced generation. The point of the design was that every claim in an answer should trace back to a specific document and page, not just sound plausible.
 
-[![Live Demo](https://img.shields.io/badge/🚀%20Live%20Demo-Streamlit-FF4B4B?style=for-the-badge)](https://lexisearch-rag-ajqgd6s57rxbg2teuj2hvq.streamlit.app/)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io)
-[![LLM Powered](https://img.shields.io/badge/LLM-Powered-8A2BE2?style=for-the-badge&logo=openai&logoColor=white)]()
+## What it does
 
----
+- Upload any PDF — reports, contracts, papers, regulations
+- Hybrid retrieval: dense vector search for meaning, BM25 for exact keyword/jargon matches, merged with Reciprocal Rank Fusion so neither approach dominates
+- Every answer is grounded with a document + page citation
+- If retrieved context doesn't actually support an answer, it says so instead of guessing — this was a deliberate constraint, not something I settled for
+- Nothing persists — documents and indexes live in `st.session_state` for the length of the session, nothing touches disk
 
-## ✨ Features
+## How it works
 
-- 📄 **Upload any PDF** — reports, contracts, research papers, regulations
-- 🧠 **Hybrid retrieval** — dense vector search (semantic) + BM25 (exact keyword) fused via Reciprocal Rank Fusion
-- 📌 **Citation-forced answers** — every claim is grounded in a specific document + page number
-- 🚫 **Confidence-gated refusal** — if the answer isn't in the documents, the system says so instead of hallucinating
-- ⚡ **Zero-persistence sessions** — documents are processed entirely in memory, nothing touches disk, nothing is stored after your session ends
-- 🎨 **Custom reading-room UI** — answers rendered as index cards with a call number and a "sourced" stamp, citations rendered as catalogue entries
+Document text comes in page-by-page via `chunker.py`, with filename and page number kept as metadata, then split into overlapping chunks so nothing gets cut off at a boundary (`chunker.py`).
 
----
+Each chunk gets indexed two ways at once (`indexer.py`): dense embeddings via `all-MiniLM-L6-v2` (384-dim) for semantic meaning, and BM25 for exact terms — identifiers, jargon, anything dense search tends to miss.
 
-## 🏗️ How It Works
+A query hits both indexes, and the two ranked lists get merged with Reciprocal Rank Fusion before reranking (`retriever.py`) — this is the part that actually balances "sounds related" against "contains the exact term."
 
-**1. Document Ingestion & Chunking** — `chunker.py`
-Raw PDF text is extracted page-by-page (preserving filename + page number as metadata) and split into overlapping chunks, so context isn't lost at chunk boundaries.
+The fused top chunks go into a prompt sent to Llama 3.3 70B on Groq, instructed to answer only from the given context (`generator.py`). No outside knowledge allowed in the prompt, which is what makes the citation-or-refuse behavior enforceable rather than just hoped for.
 
-**2. Dual Indexing** — `indexer.py`
-Every chunk is indexed two ways in parallel:
-- **Dense:** embedded into 384-dimensional vectors via `all-MiniLM-L6-v2` — captures meaning, not just words
-- **Sparse:** indexed with BM25 — catches exact terms, jargon, and identifiers dense search can miss
+## Tech stack
 
-**3. Hybrid Retrieval & Fusion** — `retriever.py`
-A query hits both indexes independently. The two ranked result lists are merged with **Reciprocal Rank Fusion**, balancing conceptual relevance against exact keyword matches before reranking.
+Streamlit for the UI, PyMuPDF for PDF parsing, `sentence-transformers` for dense embeddings, `rank-bm25` for sparse search, a custom numpy-based RRF implementation for fusion, Groq's Llama 3.3 70B for generation, and a GitHub Actions keep-alive job so the Streamlit app doesn't idle out.
 
-**4. Grounded Generation** — `generator.py`
-The top fused chunks are injected into a prompt sent to **Llama 3.3 70B via the Groq API**, with strict instructions to answer using *only* the provided context — no outside knowledge, no fabrication.
-
-**5. UI Rendering** — `app.py`
-Questions render as call slips, answers render as index cards with a citation stamp (`SOURCED ✓` / `NOT ON SHELF`), and every citation is expandable to show the exact source text.
-
----
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|---|---|
-| UI | Streamlit |
-| PDF parsing | PyMuPDF |
-| Dense embeddings | `sentence-transformers` (`all-MiniLM-L6-v2`) |
-| Sparse search | `rank-bm25` |
-| Fusion | Reciprocal Rank Fusion (custom implementation, `numpy`) |
-| Generation | Groq API — Llama 3.3 70B |
-| Uptime | GitHub Actions keep-alive workflow |
-
----
-
-## 📁 Project Structure
-
-```
-lexisearch-rag/
-├── .github/
-│   └── workflows/
-│       └── main.yml          # scheduled keep-alive job
-├── src/
-│   ├── app.py                 # Streamlit UI + session state
-│   ├── chunker.py              # PDF extraction + chunking
-│   ├── indexer.py              # dense + sparse index builder
-│   ├── retriever.py            # hybrid search + RRF fusion
-│   └── generator.py            # citation-forced LLM generation
-├── .env.example                # required environment variables
-├── .gitignore
-├── README.md
-├── requirements.txt
-└── wake_up.py                  # keep-alive ping script
-```
-
----
-
-## 🚀 Running Locally
+## Running locally
 
 ```bash
 git clone https://github.com/shakshi-soni/LEXISEARCH-RAG.git
 cd LEXISEARCH-RAG
-
 pip install -r requirements.txt
 
 cp .env.example .env
-# add your GROQ_API_KEY inside .env
+# add GROQ_API_KEY
 
 streamlit run src/app.py
 ```
 
----
+## Project structure
 
-## 🔑 Environment Variables
+```
+lexisearch-rag/
+├── .github/workflows/main.yml   # scheduled keep-alive job
+├── src/
+│   ├── app.py          # Streamlit UI + session state
+│   ├── chunker.py       # PDF extraction + chunking
+│   ├── indexer.py       # dense + sparse index builder
+│   ├── retriever.py     # hybrid search + RRF fusion
+│   └── generator.py     # citation-forced generation
+├── .env.example
+├── requirements.txt
+└── wake_up.py            # keep-alive ping
+```
 
-| Variable | Description |
-|---|---|
-| `GROQ_API_KEY` | Your Groq API key, used for answer generation |
+## Design notes
 
----
+No database, no persistence — everything lives in session state. That was a deliberate choice, not a shortcut I plan to fix: it keeps the tool privacy-friendly (nothing about someone's uploaded contract sits on a disk anywhere) and makes it trivial to deploy. The trade-off is obvious — close the tab, lose your indexed documents, re-upload next time.
 
-## 🧭 Design Notes
+## Limitations
 
-- **No database, no persistence.** All indexing happens in `st.session_state` — documents and indexes exist only for the duration of a browser session, which keeps the tool privacy-friendly and simple to deploy.
-- **Confidence over completeness.** The system is designed to refuse rather than guess when retrieved context doesn't support a confident answer — this is a deliberate constraint, not a limitation.
+- No persistence, by design — you lose your document index when the session ends
+- No reranking step beyond RRF — a cross-encoder reranker would likely improve precision on ambiguous queries, it's just not built yet
+- No formal evaluation — I've tested this on documents I fed it manually, there's no retrieval precision/recall or faithfulness scoring against a fixed test set
+- Single-document reasoning only — it can't currently compare or reason across two uploaded documents at once
+- Multi-part questions aren't decomposed — a compound question gets answered as one retrieval pass, which can miss part of it
 
----
+## What I'd improve next
 
-## 🗺️ Roadmap
+1. Cross-encoder reranking on top of the RRF-fused candidates
+2. An actual evaluation harness — retrieval precision/recall plus faithfulness scoring, not just spot-checking
+3. Query decomposition for multi-part questions
+4. Multi-document comparison mode
 
-- [ ] Cross-encoder reranking on top of RRF-fused candidates
-- [ ] Evaluation harness — retrieval precision/recall + faithfulness scoring against a fixed test set
-- [ ] Query decomposition for multi-part questions
-- [ ] Multi-document comparison mode
+## Why I built this
 
----
-## 🙋‍♂️ About the Developer
+I kept running into the same problem with RAG demos — the answer sounds confident but there's no way to check if it's actually grounded in the source, and if the retrieval misses, the model just fills the gap with something plausible. I wanted to build the version where that's not possible by construction: force every answer to cite a page, and make refusal the default when the retrieved context doesn't back up a confident claim. The hybrid retrieval (dense + BM25) came out of testing single-method search and noticing it missed exact terms and identifiers a keyword search would've caught immediately.
 
-Built with ❤️ by **SHAKSHI SONI**
+## About
 
-I'm a developer passionate about building practical AI applications that solve real-world problems. This project explores Retrieval-Augmented Generation (RAG) pipeline — specifically, a hybrid RAG system with citation-grounded, confidence-gated generation.
----
+Shakshi Soni.
 
-📫 **Connect with me:**
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-0A66C2?style=flat&logo=linkedin)](https://www.linkedin.com/in/shakshi-soni-961048411/)
-
-
-<div align="center">
-
-**⭐ If you found this project interesting, please give it a star! It helps a lot.**
-
