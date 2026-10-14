@@ -31,7 +31,7 @@ def generate_answer(query: str, context_chunks: list[dict], api_key: str = None)
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            model="gpt-oss-120b",
+            model="openai/gpt-oss-20b",
             temperature=0.2,
         )
         return response.choices[0].message.content
